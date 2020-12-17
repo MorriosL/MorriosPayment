@@ -177,10 +177,18 @@ class WechatApplication extends BaseApplication
     /**
      * @inheritDoc
      */
+    public function getTradeCallbackParams(): string
+    {
+        return file_get_contents('php://input');
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function tradeCallback(): TradeCallbackResultParam
     {
         // 获取请求参数
-        $result = XmlHelper::xmlToArray(file_get_contents('php://input'));
+        $result = XmlHelper::xmlToArray($this->getTradeCallbackParams());
 
         // 处理回调结果
         if ($result && $result['return_code'] == 'SUCCESS' && $result['return_msg'] == 'OK') {
@@ -192,11 +200,7 @@ class WechatApplication extends BaseApplication
             $result['total_fee'] /= 100;
             $result['cash_fee']  /= 100;
 
-            // 响应参数
-            $tradeCallbackResultParam                = new TradeCallbackResultParam($result);
-            $tradeCallbackResultParam->origin_params = file_get_contents('php://input');
-
-            return $tradeCallbackResultParam;
+            return new TradeCallbackResultParam($result);
         } else {
             throw new BusinessException($result['return_msg'] ?? 'Callback content is null.');
         }
