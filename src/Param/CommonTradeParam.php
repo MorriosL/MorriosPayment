@@ -40,13 +40,6 @@ class CommonTradeParam extends MorriosParam
     public $subject;
 
     /**
-     * 对一笔交易的具体描述信息
-     *
-     * @var string
-     */
-    public $body;
-
-    /**
      * 回调地址
      *
      * @var string

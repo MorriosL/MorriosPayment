@@ -64,12 +64,21 @@ abstract class BaseApplication
     abstract protected function commonTrade(string $tradeType, CommonTradeParam $tradeParam): CommonTradeResultParam;
 
     /**
-     * 订单支付回调
+     * 订单状态回调
      *
      * @return TradeCallbackResultParam
      * @throws BusinessException
      */
     abstract public function tradeCallback(): TradeCallbackResultParam;
+
+    /**
+     * 订单状态回调响应
+     *
+     * @param bool $success
+     * @return string
+     * @author LvShuai
+     */
+    abstract public function tradeCallbackResponse(bool $success): string;
 
     /**
      * 订单查询

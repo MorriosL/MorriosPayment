@@ -61,7 +61,7 @@ class WechatApplication extends BaseApplication
      * @return CommonTradeResultParam
      * @throws BusinessException
      */
-    public function appTrade(CommonTradeParam $tradeParam)
+    public function appTrade(CommonTradeParam $tradeParam): CommonTradeResultParam
     {
         return $this->commonTrade('APP', $tradeParam);
     }
@@ -73,7 +73,7 @@ class WechatApplication extends BaseApplication
      * @return CommonTradeResultParam
      * @throws BusinessException
      */
-    public function qrTrade(CommonTradeParam $tradeParam)
+    public function qrTrade(CommonTradeParam $tradeParam): CommonTradeResultParam
     {
         return $this->commonTrade('NATIVE', $tradeParam);
     }
@@ -85,7 +85,7 @@ class WechatApplication extends BaseApplication
      * @return CommonTradeResultParam
      * @throws BusinessException
      */
-    public function wapTrade(CommonTradeParam $tradeParam)
+    public function wapTrade(CommonTradeParam $tradeParam): CommonTradeResultParam
     {
         return $this->commonTrade('MWEB', $tradeParam);
     }
@@ -97,9 +97,32 @@ class WechatApplication extends BaseApplication
      * @return CommonTradeResultParam
      * @throws BusinessException
      */
-    public function jsApiTrade(CommonTradeParam $tradeParam)
+    public function jsApiTrade(CommonTradeParam $tradeParam): CommonTradeResultParam
     {
         return $this->commonTrade('JSAPI', $tradeParam);
+    }
+
+    /**
+     * 小程序支付
+     *
+     * @param string $prepayId
+     * @return array
+     * @throws Exception
+     * @author LvShuai
+     */
+    public function mpTrade(string $prepayId): array
+    {
+        $tradeParams = [
+            'appId'     => $this->config->app_id,
+            'timeStamp' => time(),
+            'nonceStr'  => StringHelper::random(),
+            'package'   => 'prepay_id=' . $prepayId,
+            'signType'  => $this->signType,
+        ];
+
+        $tradeParams['paySign'] = $this->getSign($tradeParams);
+
+        return $tradeParams;
     }
 
     /**
@@ -144,7 +167,7 @@ class WechatApplication extends BaseApplication
                     'prepay_id'  => $result['prepay_id'],
                 ]);
             } else {
-                throw new BusinessException($result['err_code_des']);
+                throw new BusinessException($result['return_msg'] ?? $result['err_code_des'] ?? '微信响应异常');
             }
         } catch (Exception $exception) {
             throw new BusinessException($exception->getMessage());
@@ -169,9 +192,25 @@ class WechatApplication extends BaseApplication
             $result['total_fee'] /= 100;
             $result['cash_fee']  /= 100;
 
-            return new TradeCallbackResultParam($result);
+            // 响应参数
+            $tradeCallbackResultParam                = new TradeCallbackResultParam($result);
+            $tradeCallbackResultParam->origin_params = file_get_contents('php://input');
+
+            return $tradeCallbackResultParam;
         } else {
             throw new BusinessException($result['return_msg'] ?? 'Callback content is null.');
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function tradeCallbackResponse(bool $success): string
+    {
+        if ($success) {
+            return XmlHelper::arrayToXml(['return_code' => 'SUCCESS', 'return_msg' => 'OK']);
+        } else {
+            return XmlHelper::arrayToXml(['return_code' => 'FAIL', 'return_msg' => 'FAIL']);
         }
     }
 

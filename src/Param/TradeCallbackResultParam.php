@@ -66,4 +66,11 @@ class TradeCallbackResultParam extends MorriosParam
      * @var string
      */
     public $time_end;
+
+    /**
+     * 原始渠道参数
+     *
+     * @var string
+     */
+    public $origin_params;
 }
