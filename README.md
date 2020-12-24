@@ -101,7 +101,7 @@ try {
     $result = $instance->appTrade($tradeParam);   // APP支付
     $result = $instance->wapTrade($tradeParam);   // H5支付
     $result = $instance->qrTrade($tradeParam);    // 二维码支付
-    $result = $instance->jsApiTrade($tradeParam); // 微信特有，JsApi支付，eg：公众号
+    $result = $instance->jsApiTrade($tradeParam); // 微信特有，JsApi支付，eg：公众号、小程序
 
     // 根据业务自行处理下单结果（成功响应TradeResultParam实例）
     // ...

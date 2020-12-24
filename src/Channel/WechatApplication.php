@@ -94,32 +94,21 @@ class WechatApplication extends BaseApplication
      * JsApi支付
      *
      * @param CommonTradeParam $tradeParam
-     * @return CommonTradeResultParam
-     * @throws BusinessException
-     */
-    public function jsApiTrade(CommonTradeParam $tradeParam): CommonTradeResultParam
-    {
-        return $this->commonTrade('JSAPI', $tradeParam);
-    }
-
-    /**
-     * 小程序支付
-     *
-     * @param string $prepayId
      * @return array
+     * @throws BusinessException
      * @throws Exception
-     * @author LvShuai
      */
-    public function mpTrade(string $prepayId): array
+    protected function jsApiTrade(CommonTradeParam $tradeParam): array
     {
-        $tradeParams = [
+        $commonTradeResult = $this->commonTrade('JSAPI', $tradeParam);
+
+        $tradeParams            = [
             'appId'     => $this->config->app_id,
             'timeStamp' => time(),
             'nonceStr'  => StringHelper::random(),
-            'package'   => 'prepay_id=' . $prepayId,
+            'package'   => 'prepay_id=' . $commonTradeResult->prepay_id,
             'signType'  => $this->signType,
         ];
-
         $tradeParams['paySign'] = $this->getSign($tradeParams);
 
         return $tradeParams;
