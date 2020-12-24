@@ -98,7 +98,7 @@ class WechatApplication extends BaseApplication
      * @throws BusinessException
      * @throws Exception
      */
-    protected function jsApiTrade(CommonTradeParam $tradeParam): array
+    public function jsApiTrade(CommonTradeParam $tradeParam): array
     {
         $commonTradeResult = $this->commonTrade('JSAPI', $tradeParam);
 
