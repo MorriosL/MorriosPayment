@@ -40,4 +40,25 @@ class ConfigParam extends MorriosParam
      * @var string
      */
     public $mch_id;
+
+    /**
+     * 证书文件路径
+     *
+     * @var string
+     */
+    public $certificate;
+
+    /**
+     * 私钥文件路径
+     *
+     * @var string
+     */
+    public $private_key;
+
+    /**
+     * 证书序列号
+     *
+     * @var string
+     */
+    public $certificate_serial_no;
 }

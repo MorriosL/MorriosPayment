@@ -13,8 +13,9 @@
         "php": ">=7.0",
         "ext-json": "*",
         "ext-openssl": "*",
-        "ext-mbstring": "*",
-        "morrios/base": "^1.0"
+        "morrios/base": "^1.0",
+        "alipaysdk/easysdk": "^2.2",
+        "wechatpay/wechatpay-guzzle-middleware": "^0.2.1"
     },
     "autoload": {
         "psr-4": {

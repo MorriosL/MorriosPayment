@@ -38,4 +38,11 @@ class CommonTradeResultParam extends MorriosParam
      * @var string
      */
     public $prepay_id;
+
+    /**
+     * 二维码链接
+     *
+     * @var string
+     */
+    public $code_url;
 }

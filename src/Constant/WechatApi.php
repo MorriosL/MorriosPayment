@@ -10,24 +10,18 @@ namespace Morrios\Payment\Constant;
 
 
 /**
- * Class WechatApi
+ * 微信API枚举类
  *
  * @package Morrios\Payment\Constant
  */
 class WechatApi
 {
-    // URI
+    // BASE URI
     const BASE_URI = 'https://api.mch.weixin.qq.com';
 
-    // 统一下单
-    const TRADE = '/pay/unifiedorder';
+    // 订单
+    const TRADE = '/v3/pay/transactions/';
 
-    // 查询订单
-    const TRADE_QUERY = '/pay/orderquery';
-
-    // 申请退款
-    const REFUND = '/secapi/pay/refund';
-
-    // 退款查询
-    const REFUND_QUERY = '/pay/refundquery';
+    // 退款
+    const REFUND = '/v3/refund/domestic/refunds/';
 }

@@ -9,22 +9,14 @@
 namespace Morrios\Payment\Channel;
 
 
-use Morrios\Base\Exception\BusinessException;
-use Morrios\Base\Helper\GuzzleHelper;
-use Morrios\Payment\Param\{
-    RefundCallbackResultParam,
-    RefundParam,
-    RefundQueryParam,
-    RefundQueryResultParam,
-    RefundResultParam,
-    TradeCallbackResultParam,
-    ConfigParam,
-    TradeQueryParam,
-    TradeQueryResultParam,
-    CommonTradeParam,
-    CommonTradeResultParam
-};
-
+use Morrios\Payment\Exception\PaymentChannelException;
+use Morrios\Payment\Param\RefundParam;
+use Morrios\Payment\Param\RefundResultParam;
+use Morrios\Payment\Param\ConfigParam;
+use Morrios\Payment\Param\TradeQueryParam;
+use Morrios\Payment\Param\CommonTradeParam;
+use Morrios\Payment\Param\CommonTradeResultParam;
+use Morrios\Payment\Param\TradeResultParam;
 
 /**
  * Class BaseApplication
@@ -34,11 +26,8 @@ use Morrios\Payment\Param\{
 abstract class BaseApplication
 {
     /**
-     * @var GuzzleHelper
-     */
-    protected $guzzleClient;
-
-    /**
+     * 支付渠道配置
+     *
      * @var ConfigParam
      */
     protected $config;
@@ -59,74 +48,90 @@ abstract class BaseApplication
      * @param string           $tradeType
      * @param CommonTradeParam $tradeParam
      * @return CommonTradeResultParam
-     * @throws BusinessException
+     * @throws PaymentChannelException
      */
     abstract protected function commonTrade(string $tradeType, CommonTradeParam $tradeParam): CommonTradeResultParam;
 
     /**
-     * 获取订单状态回调参数
-     *
-     * @return string
-     * @author LvShuai
-     */
-    abstract public function getTradeCallbackParams(): string;
-
-    /**
      * 订单状态回调
      *
-     * @return TradeCallbackResultParam
-     * @throws BusinessException
+     * @return TradeResultParam
+     * @throws PaymentChannelException
      */
-    abstract public function tradeCallback(): TradeCallbackResultParam;
-
-    /**
-     * 订单状态回调响应
-     *
-     * @param bool $success
-     * @return string
-     * @author LvShuai
-     */
-    abstract public function tradeCallbackResponse(bool $success): string;
+    abstract public function tradeCallback(): TradeResultParam;
 
     /**
      * 订单查询
      *
      * @param TradeQueryParam $queryParam
-     * @return TradeQueryResultParam
-     * @throws BusinessException
+     * @return TradeResultParam
+     * @throws PaymentChannelException
      */
-    abstract public function tradeQuery(TradeQueryParam $queryParam): TradeQueryResultParam;
+    abstract public function tradeQuery(TradeQueryParam $queryParam): TradeResultParam;
+
+    /**
+     * 关闭订单
+     *
+     * @param string $outTradeNo
+     * @return void
+     * @throws PaymentChannelException
+     */
+    abstract public function tradeClose(string $outTradeNo);
 
     /**
      * 发起退款
      *
      * @param RefundParam $refundParam
      * @return RefundResultParam
-     * @throws BusinessException
+     * @throws PaymentChannelException
      */
     abstract public function refund(RefundParam $refundParam): RefundResultParam;
 
     /**
-     * 退款回调
+     * 退款状态回调
      *
-     * @return RefundCallbackResultParam
+     * @return RefundResultParam
+     * @throws PaymentChannelException
      */
-    abstract public function refundCallback(): RefundCallbackResultParam;
+    abstract public function refundCallback(): RefundResultParam;
 
     /**
      * 退款查询
      *
-     * @param RefundQueryParam $refundQueryParam
-     * @return RefundQueryResultParam
-     * @throws BusinessException
+     * @param string $outTradeNo
+     * @return RefundResultParam
+     * @throws PaymentChannelException
      */
-    abstract public function refundQuery(RefundQueryParam $refundQueryParam): RefundQueryResultParam;
+    abstract public function refundQuery(string $outTradeNo): RefundResultParam;
 
     /**
-     * 获取签名
+     * 获取回调参数
      *
-     * @param array $signData
      * @return string
      */
-    abstract protected function getSign(array $signData): string;
+    abstract public function getCallbackParams(): string;
+
+    /**
+     * 回调响应
+     *
+     * @param bool $success
+     * @return string
+     */
+    abstract public function callbackResponse(bool $success): string;
+
+    /**
+     * 签名参数
+     *
+     * @param array $signData
+     * @return array
+     */
+    abstract protected function signParams(array $signData): array;
+
+    /**
+     * 签名验证
+     *
+     * @return bool
+     * @author LvShuai
+     */
+    abstract protected function signVerify(): bool;
 }

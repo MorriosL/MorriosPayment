@@ -2,44 +2,45 @@
 /**
  * WechatApplication.php
  *
- * @author  Carl <morrios@163.com>
- * @ctime   2020/2/24 11:53 上午
+ * User: LvShuai
+ * Date: 2021/1/7
+ * Email: <morrios@163.com>
  */
 
 namespace Morrios\Payment\Channel;
 
 
-use Exception;
-use Morrios\Base\Exception\BusinessException;
-use Morrios\Base\Helper\{GuzzleHelper, StringHelper, XmlHelper};
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\HandlerStack;
+use Morrios\Base\Helper\GuzzleHelper;
+use Morrios\Base\Helper\StringHelper;
 use Morrios\Payment\Constant\WechatApi;
-use Morrios\Payment\Param\{
-    RefundCallbackResultParam,
-    RefundParam,
-    RefundQueryParam,
-    RefundQueryResultParam,
-    RefundResultParam,
-    TradeCallbackResultParam,
-    ConfigParam,
-    TradeQueryParam,
-    TradeQueryResultParam,
-    CommonTradeParam,
-    CommonTradeResultParam
-};
+use Morrios\Payment\Exception\PaymentChannelException;
+use Morrios\Payment\Param\CommonTradeParam;
+use Morrios\Payment\Param\CommonTradeResultParam;
+use Morrios\Payment\Param\ConfigParam;
+use Morrios\Payment\Param\RefundParam;
+use Morrios\Payment\Param\RefundResultParam;
+use Morrios\Payment\Param\TradeQueryParam;
+use Morrios\Payment\Param\TradeResultParam;
+use Morrios\Payment\Param\CommonTradeWechatParam;
+use WechatPay\GuzzleMiddleware\Util\AesUtil;
+use WechatPay\GuzzleMiddleware\Util\PemUtil;
+use WechatPay\GuzzleMiddleware\WechatPayMiddleware;
 
 /**
- * Class WechatApplication
+ * 微信渠道
  *
  * @package Morrios\Payment\Channel
  */
 class WechatApplication extends BaseApplication
 {
     /**
-     * 签名类型
+     * v3GuzzleClient
      *
-     * @var string
+     * @var GuzzleHelper
      */
-    protected $signType = 'MD5';
+    private $_guzzleClient;
 
     /**
      * WechatApplication constructor.
@@ -50,68 +51,78 @@ class WechatApplication extends BaseApplication
     {
         parent::__construct($configParam);
 
-        $this->guzzleClient = GuzzleHelper::instance(WechatApi::BASE_URI);
-        $this->guzzleClient->setParamsType('body');
-    }
+        if (!$this->_guzzleClient instanceof GuzzleHelper) {
+            // 创建V3 Guzzle客户端
+            $stack = HandlerStack::create();
+            $stack->push(
+                WechatPayMiddleware::builder()
+                    ->withMerchant($this->config->mch_id, $this->config->certificate_serial_no, PemUtil::loadPrivateKey($this->config->private_key))
+                    ->withWechatPay([PemUtil::loadCertificate($this->config->certificate)])
+                    ->build(),
+                'wechatPay'
+            );
 
-    /**
-     * APP支付
-     *
-     * @param CommonTradeParam $tradeParam
-     * @return CommonTradeResultParam
-     * @throws BusinessException
-     */
-    public function appTrade(CommonTradeParam $tradeParam): CommonTradeResultParam
-    {
-        return $this->commonTrade('APP', $tradeParam);
-    }
+            $this->_guzzleClient = GuzzleHelper::instance(WechatApi::BASE_URI, $stack);
+            $this->_guzzleClient->setParamsType('json');
+        }
 
-    /**
-     * 扫码支付
-     *
-     * @param CommonTradeParam $tradeParam
-     * @return CommonTradeResultParam
-     * @throws BusinessException
-     */
-    public function qrTrade(CommonTradeParam $tradeParam): CommonTradeResultParam
-    {
-        return $this->commonTrade('NATIVE', $tradeParam);
-    }
-
-    /**
-     * WAP支付
-     *
-     * @param CommonTradeParam $tradeParam
-     * @return CommonTradeResultParam
-     * @throws BusinessException
-     */
-    public function wapTrade(CommonTradeParam $tradeParam): CommonTradeResultParam
-    {
-        return $this->commonTrade('MWEB', $tradeParam);
     }
 
     /**
      * JsApi支付
      *
-     * @param CommonTradeParam $tradeParam
+     * @param CommonTradeWechatParam $tradeParam
      * @return array
-     * @throws BusinessException
-     * @throws Exception
+     * @throws PaymentChannelException
+     * @author LvShuai
      */
-    public function jsApiTrade(CommonTradeParam $tradeParam): array
+    public function jsApiTrade(CommonTradeWechatParam $tradeParam): array
     {
-        $commonTradeResult = $this->commonTrade('JSAPI', $tradeParam);
-
-        $tradeParams            = [
+        return $this->signParams([
             'appId'     => $this->config->app_id,
-            'timeStamp' => time(),
+            'timeStamp' => (string)time(),
             'nonceStr'  => StringHelper::random(),
-            'package'   => 'prepay_id=' . $commonTradeResult->prepay_id,
-            'signType'  => $this->signType,
-        ];
-        $tradeParams['paySign'] = $this->getSign($tradeParams);
+            'package'   => 'prepay_id=' . $this->commonTrade('JSAPI', $tradeParam)->prepay_id,
+        ]);
+    }
 
-        return $tradeParams;
+    /**
+     * APP支付
+     *
+     * @param CommonTradeWechatParam $tradeParam
+     * @return string
+     * @throws PaymentChannelException
+     * @author LvShuai
+     */
+    public function appTrade(CommonTradeWechatParam $tradeParam): string
+    {
+        return $this->commonTrade('APP', $tradeParam)->prepay_id;
+    }
+
+    /**
+     * H5支付
+     *
+     * @param CommonTradeWechatParam $tradeParam
+     * @return string
+     * @throws PaymentChannelException
+     * @author LvShuai
+     */
+    public function h5Trade(CommonTradeWechatParam $tradeParam): string
+    {
+        return $this->commonTrade('H5', $tradeParam)->pay_url;
+    }
+
+    /**
+     * 扫码支付
+     *
+     * @param CommonTradeWechatParam $tradeParam
+     * @return string
+     * @throws PaymentChannelException
+     * @author LvShuai
+     */
+    public function nativeTrade(CommonTradeWechatParam $tradeParam): string
+    {
+        return $this->commonTrade('NATIVE', $tradeParam)->code_url;
     }
 
     /**
@@ -120,217 +131,207 @@ class WechatApplication extends BaseApplication
     protected function commonTrade(string $tradeType, CommonTradeParam $tradeParam): CommonTradeResultParam
     {
         try {
-            // 下单参数
-            $params         = array_filter([
-                'appid'            => $this->config->app_id,
-                'mch_id'           => $this->config->mch_id,
-                'device_info'      => $tradeParam->device_info,
-                'nonce_str'        => StringHelper::random(),
-                'sign_type'        => $this->signType,
-                'body'             => $tradeParam->subject,
-                'detail'           => $tradeParam->detail,
-                'attach'           => $tradeParam->attach,
-                'out_trade_no'     => $tradeParam->order_no,
-                'fee_type'         => 'CNY',
-                'total_fee'        => $tradeParam->money * 100,
-                'spbill_create_ip' => $tradeParam->client_ip ?: $_SERVER['REMOTE_ADDR'],
-                'goods_tag'        => $tradeParam->discount,
-                'notify_url'       => $tradeParam->notify_url,
-                'trade_type'       => $tradeType,
-                'product_id'       => $tradeParam->product_id,
-                'limit_pay'        => $tradeParam->disable_pay_channels,
-                'openid'           => $tradeParam->openid,
-                'receipt'          => $tradeParam->receipt,
-                'scene_info'       => $tradeParam->scene_info,
-            ]);
-            $params['sign'] = $this->getSign($params);
+            /** @var CommonTradeWechatParam $tradeParam */
+            $params = [
+                'appid'        => $this->config->app_id,
+                'mchid'        => $this->config->mch_id,
+                'description'  => $tradeParam->detail,
+                'out_trade_no' => $tradeParam->order_no,
+                'attach'       => $tradeParam->attach,
+                'notify_url'   => $tradeParam->notify_url,
+                'amount'       => ['total' => $tradeParam->money * 100],
+                'scene_info'   => ['payer_client_ip' => $tradeParam->client_ip],
+            ];
+            if ($tradeType == 'JSAPI') $params['payer'] = ['openid' => $tradeParam->openid];
 
-            // 请求下单
-            $result = XmlHelper::xmlToArray($this->guzzleClient->post(WechatApi::TRADE, XmlHelper::arrayToXml($params)));
+            return new CommonTradeResultParam($this->_guzzleClient->post(WechatApi::TRADE . strtolower($tradeType), $params, [], ['Accept' => 'application/json']));
+        } catch (RequestException $requestException) {
+            $requestException->getRequest()->getBody()->rewind();
+            $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
 
-            // 处理下单结果
-            if ($result['return_code'] == 'SUCCESS' && $result['result_code'] == 'SUCCESS') {
-                return new CommonTradeResultParam([
-                    'trade_type' => $result['trade_type'],
-                    'pay_url'    => $result['code_url'] ?? $result['mweb_url'] ?? '',
-                    'prepay_id'  => $result['prepay_id'],
-                ]);
-            } else {
-                throw new BusinessException($result['return_msg'] ?? $result['err_code_des'] ?? '微信响应异常');
-            }
-        } catch (Exception $exception) {
-            throw new BusinessException($exception->getMessage());
-        }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getTradeCallbackParams(): string
-    {
-        return file_get_contents('php://input');
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function tradeCallback(): TradeCallbackResultParam
-    {
-        // 获取请求参数
-        $result = XmlHelper::xmlToArray($this->getTradeCallbackParams());
-
-        // 处理回调结果
-        if ($result && $result['return_code'] == 'SUCCESS' && $result['return_msg'] == 'OK') {
-
-            // 校验签名
-            if ($result['sign'] != $this->getSign($result)) throw new BusinessException('回调签名错误');
-
-            // 金额单位转换
-            $result['total_fee'] /= 100;
-            $result['cash_fee']  /= 100;
-
-            return new TradeCallbackResultParam($result);
-        } else {
-            throw new BusinessException($result['return_msg'] ?? 'Callback content is null.');
-        }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function tradeCallbackResponse(bool $success): string
-    {
-        if ($success) {
-            return XmlHelper::arrayToXml(['return_code' => 'SUCCESS', 'return_msg' => 'OK']);
-        } else {
-            return XmlHelper::arrayToXml(['return_code' => 'FAIL', 'return_msg' => 'FAIL']);
+            throw new PaymentChannelException($response['code'], $response['message']);
         }
     }
 
     /**
      * @inheritdoc
      */
-    public function tradeQuery(TradeQueryParam $queryParam): TradeQueryResultParam
+    public function tradeCallback(): TradeResultParam
     {
-        // 查询参数
+        // 签名验证
+        if (!$this->signVerify()) throw new PaymentChannelException(400, '签名验证失败');
+
+        // 解析通知参数
+        $callbackParams = json_decode($this->getCallbackParams(), true);
+
+        // 解析通知结果
+        $callbackResult = json_decode((new AesUtil($this->config->pay_key))->decryptToString(
+            $callbackParams['resource']['associated_data'],
+            $callbackParams['resource']['nonce'],
+            $callbackParams['resource']['ciphertext']
+        ), true);
+        if ($callbackResult['trade_state'] != 'SUCCESS') throw new PaymentChannelException($callbackResult['trade_state'], $callbackResult['trade_state_desc']);
+
+        return new TradeResultParam([
+            'order_no'       => $callbackResult['out_trade_no'],
+            'transaction_id' => $callbackResult['transaction_id'],
+            'money'          => $callbackResult['amount']['total'] / 100,
+            'paid_money'     => $callbackResult['amount']['payer_total'] / 100,
+            'paid_at'        => date_create($callbackResult['success_time'])->format('Y-m-d H:i:s'),
+            'attach'         => $callbackResult['attach'],
+        ]);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function tradeClose(string $outTradeNo)
+    {
         try {
-            $params         = [
-                'appid'          => $this->config->app_id,
-                'mch_id'         => $this->config->mch_id,
-                'transaction_id' => $queryParam->transaction_id,
-                'out_trade_no'   => $queryParam->out_trade_no,
-                'nonce_str'      => StringHelper::random(),
-                'sign_type'      => $this->signType,
-            ];
-            $params['sign'] = $this->getSign($params);
+            $this->_guzzleClient->post(WechatApi::TRADE . 'out-trade-no/' . $outTradeNo . '/close', ['mchid' => $this->config->mch_id], ['Accept' => 'application/json']);
+        } catch (RequestException $requestException) {
+            $requestException->getRequest()->getBody()->rewind();
+            $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
 
-            // 请求查询
-            $result = XmlHelper::xmlToArray($this->guzzleClient->post(WechatApi::TRADE_QUERY, XmlHelper::arrayToXml($params)));
-
-            // 处理查询结果
-            if ($result['return_code'] == 'SUCCESS' && $result['result_code'] == 'SUCCESS') {
-                return new TradeQueryResultParam($result);
-            } else {
-                throw new BusinessException($result['return_msg']);
-            }
-        } catch (Exception $exception) {
-            throw new BusinessException($exception->getMessage());
+            throw new PaymentChannelException($response['code'], $response['message']);
         }
     }
 
     /**
-     * @inheritDoc
+     * @inheritdoc
+     */
+    public function tradeQuery(TradeQueryParam $queryParam): TradeResultParam
+    {
+        try {
+            return new TradeResultParam($this->_guzzleClient->get(
+                WechatApi::TRADE . ($queryParam->transaction_id ? 'id/' . $queryParam->transaction_id : 'out-trade-no/' . $queryParam->out_trade_no),
+                ['mchid' => $this->config->mch_id],
+                ['Accept' => 'application/json']
+            ));
+        } catch (RequestException $requestException) {
+            $requestException->getRequest()->getBody()->rewind();
+            $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
+
+            throw new PaymentChannelException($response['code'], $response['message']);
+        }
+    }
+
+    /**
+     * @inheritdoc
      */
     public function refund(RefundParam $refundParam): RefundResultParam
     {
         try {
-            // 退款参数
-            $params         = [
-                'appid'           => $this->config->app_id,
-                'mch_id'          => $this->config->mch_id,
-                'nonce_str'       => StringHelper::random(),
-                'sign_type'       => $this->signType,
-                'transaction_id'  => $refundParam->transaction_id,
-                'out_trade_no'    => $refundParam->out_trade_no,
-                'out_refund_no'   => $refundParam->out_refund_no,
-                'total_fee'       => $refundParam->total_fee * 100,
-                'refund_fee'      => $refundParam->refund_fee * 100,
-                'refund_fee_type' => 'CNY',
-                'refund_desc'     => $refundParam->refund_desc,
-                'notify_url'      => $refundParam->notify_url,
-            ];
-            $params['sign'] = $this->getSign($params);
+            $result = $this->_guzzleClient->post(WechatApi::REFUND, [
+                'transaction_id' => $refundParam->transaction_id,
+                'out_trade_no'   => $refundParam->out_trade_no,
+                'out_refund_no'  => $refundParam->out_refund_no,
+                'notify_url'     => $refundParam->notify_url,
+                'amount'         => [
+                    'refund'   => $refundParam->refund_fee * 100,
+                    'total'    => $refundParam->total_fee * 100,
+                    'currency' => 'CNY',
+                ],
+            ], [], ['Accept' => 'application/json']);
 
-            // 请求退款
-            $result = XmlHelper::xmlToArray($this->guzzleClient->post(WechatApi::REFUND, XmlHelper::arrayToXml($params)));
+            return new RefundResultParam($result + $result['amount']);
+        } catch (RequestException $requestException) {
+            $requestException->getRequest()->getBody()->rewind();
+            $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
 
-            // 处理退款结果
-            if ($result['return_code'] == 'SUCCESS' && $result['result_code'] == 'SUCCESS') {
-                // 金额单位转换
-                $result['total_fee']  /= 100;
-                $result['refund_fee'] /= 100;
-
-                return new RefundResultParam($result);
-            } else {
-                throw new BusinessException($result['return_msg']);
-            }
-        } catch (Exception $exception) {
-            throw new BusinessException($exception->getMessage());
+            throw new PaymentChannelException($response['code'], $response['message']);
         }
+
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function refundCallback(): RefundResultParam
+    {
+        // 签名验证
+        if (!$this->signVerify()) throw new PaymentChannelException(400, '签名验证失败');
+
+        // 解析通知参数
+        $callbackParams = json_decode($this->getCallbackParams(), true);
+
+        // 解析通知结果
+        $callbackResult = json_decode((new AesUtil($this->config->pay_key))->decryptToString(
+            $callbackParams['resource']['associated_data'],
+            $callbackParams['resource']['nonce'],
+            $callbackParams['resource']['ciphertext']
+        ), true);
+        if ($callbackResult['trade_state'] != 'SUCCESS') throw new PaymentChannelException($callbackResult['trade_state'], $callbackResult['trade_state_desc']);
+
+        return new RefundResultParam($callbackResult + $callbackResult['amount']);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function refundQuery(string $outTradeNo): RefundResultParam
+    {
+        try {
+            return new RefundResultParam($this->_guzzleClient->get(WechatApi::REFUND . $outTradeNo, [], ['Accept' => 'application/json']));
+        } catch (RequestException $requestException) {
+            $requestException->getRequest()->getBody()->rewind();
+            $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
+
+            throw new PaymentChannelException($response['code'], $response['message']);
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getCallbackParams(): string
+    {
+        return file_get_contents('php://input');
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function callbackResponse(bool $success): string
+    {
+        return json_encode([
+            'code'    => $success ? 'SUCCESS' : 'FAIL',
+            'message' => $success ? '成功' : '失败',
+        ]);
     }
 
     /**
      * @inheritDoc
      */
-    public function refundCallback(): RefundCallbackResultParam
+    protected function signParams(array $signData): array
     {
-        // TODO: Implement refundCallback() method.
+        openssl_sign(implode("\n", $signData), $sign, PemUtil::loadPrivateKey($this->config->private_key), 'sha256WithRSAEncryption');
+
+        $signData['signType'] = 'RSA';
+        $signData['paySign']  = base64_encode($sign);
+
+        return $signData;
     }
 
     /**
-     * @inheritDoc
+     * @inheritdoc
      */
-    public function refundQuery(RefundQueryParam $refundQueryParam): RefundQueryResultParam
+    protected function signVerify(): bool
     {
-        // 查询参数
-        $params         = [
-            'appid'          => $this->config->app_id,
-            'mch_id'         => $this->config->mch_id,
-            'nonce_str'      => StringHelper::random(),
-            'transaction_id' => $refundQueryParam->transaction_id,
-            'out_trade_no'   => $refundQueryParam->out_trade_no,
-            'out_refund_no'  => $refundQueryParam->out_refund_no,
-            'refund_id'      => $refundQueryParam->refund_id,
-        ];
-        $params['sign'] = $this->getSign($params);
+        $certificate = PemUtil::loadCertificate($this->config->certificate);
 
-        // 请求查询
-        $result = XmlHelper::xmlToArray($this->guzzleClient->post(WechatApi::REFUND_QUERY, XmlHelper::arrayToXml($params)));
+        if (PemUtil::parseCertificateSerialNo($certificate) !== $_SERVER['HTTP_WECHATPAY-SERIAL']) return false;
 
-        if ($result['return_code'] == 'SUCCESS' && $result['result_code'] == 'SUCCESS') {
-            return new RefundQueryResultParam([
-                'refund_count' => $result['refund_count'],
-            ]);
-        } else {
-            throw new BusinessException($result['return_msg']);
-        }
-    }
+        $publicKey = openssl_pkey_get_public($certificate);
 
-    /**
-     * @inheritDoc
-     */
-    protected function getSign(array $signData): string
-    {
-        $sign = '';
+        $result = openssl_verify(implode("\n", [
+            $_SERVER['HTTP_WECHATPAY-TIMESTAMP'],
+            $_SERVER['HTTP_WECHATPAY-NONCE'],
+            $this->getCallbackParams(),
+        ]), base64_decode($_SERVER['HTTP_WECHATPAY-SIGNATURE']), $publicKey, OPENSSL_ALGO_SHA256);
 
-        ksort($signData);
+        openssl_free_key($publicKey);
 
-        foreach ($signData as $key => $value) {
-            if ($value != '' && $key != 'sign' && !is_array($value)) $sign .= $key . '=' . $value . '&';
-        }
-
-        $sign .= 'key=' . $this->config->pay_key;
-
-        return strtoupper(md5($sign));
+        return $result == 1;
     }
 }

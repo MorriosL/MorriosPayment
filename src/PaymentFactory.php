@@ -10,7 +10,6 @@ namespace Morrios\Payment;
 
 
 use Morrios\Base\Exception\BusinessException;
-//use Morrios\Payment\Channel\AlipayApplication;
 use Morrios\Payment\Channel\BaseApplication;
 use Morrios\Payment\Channel\WechatApplication;
 use Morrios\Payment\Param\ConfigParam;
@@ -19,7 +18,6 @@ use Morrios\Payment\Param\ConfigParam;
  * Class PaymentFactory
  *
  * @package Morrios\Payment
-// * @method static AlipayApplication Alipay(ConfigParam $configParam)
  * @method static WechatApplication Wechat(ConfigParam $configParam)
  */
 class PaymentFactory
@@ -32,7 +30,7 @@ class PaymentFactory
      * @return BaseApplication
      * @throws BusinessException
      */
-    public static function __callStatic($name, $arguments)
+    public static function __callStatic($name, $arguments): BaseApplication
     {
         return self::make($name, ...$arguments);
     }

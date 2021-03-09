@@ -20,11 +20,11 @@ use Morrios\Base\Param\MorriosParam;
 class RefundResultParam extends MorriosParam
 {
     /**
-     * 商户订单号
+     * 支付渠道退款订单号
      *
      * @var string
      */
-    public $out_trade_no;
+    public $refund_id;
 
     /**
      * 商户退款订单号
@@ -34,13 +34,6 @@ class RefundResultParam extends MorriosParam
     public $out_refund_no;
 
     /**
-     * 订单总金额
-     *
-     * @var float
-     */
-    public $total_fee;
-
-    /**
      * 支付渠道订单号
      *
      * @var string
@@ -48,16 +41,65 @@ class RefundResultParam extends MorriosParam
     public $transaction_id;
 
     /**
-     * 支付渠道退款订单号
+     * 商户订单号
      *
      * @var string
      */
-    public $refund_id;
+    public $out_trade_no;
 
     /**
-     * 退款金额
+     * 退款渠道
+     *
+     * @var string
+     */
+    public $channel;
+
+    /**
+     * 退款入账账户
+     *
+     * @var string
+     */
+    public $user_received_account;
+
+    /**
+     * 退款创建时间
+     *
+     * @var string
+     */
+    public $create_time;
+
+    /**
+     * 退款成功时间
+     *
+     * @var string
+     */
+    public $success_time;
+
+    /**
+     * 退款状态
+     *
+     * @var string
+     */
+    public $status;
+
+    /**
+     * 资金账户
+     *
+     * @var string
+     */
+    public $funds_account;
+
+    /**
+     * 用户支付金额
      *
      * @var float
      */
-    public $refund_fee;
+    public $payer_total;
+
+    /**
+     * 用户退款金额
+     *
+     * @var float
+     */
+    public $payer_refund;
 }
