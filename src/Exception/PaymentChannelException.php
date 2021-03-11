@@ -22,10 +22,10 @@ class PaymentChannelException extends MorriosException
     /**
      * BusinessException constructor.
      *
-     * @param string $code
+     * @param int    $code
      * @param string $errorMessage
      */
-    public function __construct(string $code, string $errorMessage)
+    public function __construct(string $errorMessage, int $code = E_ALL)
     {
         $this->errorCode    = $code;
         $this->errorMessage = 'Payment Channel Error:' . $errorMessage;

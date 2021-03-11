@@ -149,7 +149,7 @@ class WechatApplication extends BaseApplication
             $requestException->getRequest()->getBody()->rewind();
             $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
 
-            throw new PaymentChannelException($response['code'], $response['message']);
+            throw new PaymentChannelException($response['code'] . '-' . $response['message']);
         }
     }
 
@@ -159,7 +159,7 @@ class WechatApplication extends BaseApplication
     public function tradeCallback(): TradeResultParam
     {
         // 签名验证
-        if (!$this->signVerify()) throw new PaymentChannelException(400, '签名验证失败');
+        if (!$this->signVerify()) throw new PaymentChannelException('签名验证失败', 400);
 
         // 解析通知参数
         $callbackParams = json_decode($this->getCallbackParams(), true);
@@ -170,7 +170,7 @@ class WechatApplication extends BaseApplication
             $callbackParams['resource']['nonce'],
             $callbackParams['resource']['ciphertext']
         ), true);
-        if ($callbackResult['trade_state'] != 'SUCCESS') throw new PaymentChannelException($callbackResult['trade_state'], $callbackResult['trade_state_desc']);
+        if ($callbackResult['trade_state'] != 'SUCCESS') throw new PaymentChannelException($callbackResult['trade_state'] . '-' . $callbackResult['trade_state_desc']);
 
         return new TradeResultParam([
             'order_no'       => $callbackResult['out_trade_no'],
@@ -193,7 +193,7 @@ class WechatApplication extends BaseApplication
             $requestException->getRequest()->getBody()->rewind();
             $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
 
-            throw new PaymentChannelException($response['code'], $response['message']);
+            throw new PaymentChannelException($response['code'] . '-' . $response['message']);
         }
     }
 
@@ -212,7 +212,7 @@ class WechatApplication extends BaseApplication
             $requestException->getRequest()->getBody()->rewind();
             $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
 
-            throw new PaymentChannelException($response['code'], $response['message']);
+            throw new PaymentChannelException($response['code'] . '-' . $response['message']);
         }
     }
 
@@ -239,7 +239,7 @@ class WechatApplication extends BaseApplication
             $requestException->getRequest()->getBody()->rewind();
             $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
 
-            throw new PaymentChannelException($response['code'], $response['message']);
+            throw new PaymentChannelException($response['code'] . '-' . $response['message']);
         }
 
     }
@@ -250,7 +250,7 @@ class WechatApplication extends BaseApplication
     public function refundCallback(): RefundResultParam
     {
         // 签名验证
-        if (!$this->signVerify()) throw new PaymentChannelException(400, '签名验证失败');
+        if (!$this->signVerify()) throw new PaymentChannelException('签名验证失败', 400);
 
         // 解析通知参数
         $callbackParams = json_decode($this->getCallbackParams(), true);
@@ -261,7 +261,7 @@ class WechatApplication extends BaseApplication
             $callbackParams['resource']['nonce'],
             $callbackParams['resource']['ciphertext']
         ), true);
-        if ($callbackResult['trade_state'] != 'SUCCESS') throw new PaymentChannelException($callbackResult['trade_state'], $callbackResult['trade_state_desc']);
+        if ($callbackResult['trade_state'] != 'SUCCESS') throw new PaymentChannelException($callbackResult['trade_state'] . '-' . $callbackResult['trade_state_desc']);
 
         return new RefundResultParam($callbackResult + $callbackResult['amount']);
     }
@@ -277,7 +277,7 @@ class WechatApplication extends BaseApplication
             $requestException->getRequest()->getBody()->rewind();
             $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
 
-            throw new PaymentChannelException($response['code'], $response['message']);
+            throw new PaymentChannelException($response['code'] . '-' . $response['message']);
         }
     }
 
