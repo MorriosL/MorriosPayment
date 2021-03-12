@@ -36,7 +36,7 @@ use WechatPay\GuzzleMiddleware\WechatPayMiddleware;
 class WechatApplication extends BaseApplication
 {
     /**
-     * v3GuzzleClient
+     * GuzzleClient
      *
      * @var GuzzleHelper
      */
@@ -52,7 +52,7 @@ class WechatApplication extends BaseApplication
         parent::__construct($configParam);
 
         if (!$this->_guzzleClient instanceof GuzzleHelper) {
-            // 创建V3 Guzzle客户端
+            // 创建Guzzle客户端
             $stack = HandlerStack::create();
             $stack->push(
                 WechatPayMiddleware::builder()
