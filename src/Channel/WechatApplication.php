@@ -305,7 +305,7 @@ class WechatApplication extends BaseApplication
      */
     protected function signParams(array $signData): array
     {
-        openssl_sign(implode("\n", $signData), $sign, PemUtil::loadPrivateKey($this->config->private_key), 'sha256WithRSAEncryption');
+        openssl_sign(implode("\n", $signData) . "\n", $sign, PemUtil::loadPrivateKey($this->config->private_key), 'sha256WithRSAEncryption');
 
         $signData['signType'] = 'RSA';
         $signData['paySign']  = base64_encode($sign);
