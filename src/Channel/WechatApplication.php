@@ -173,7 +173,7 @@ class WechatApplication extends BaseApplication
         if ($callbackResult['trade_state'] != 'SUCCESS') throw new PaymentChannelException($callbackResult['trade_state'] . '-' . $callbackResult['trade_state_desc']);
 
         return new TradeResultParam([
-            'order_no'       => $callbackResult['out_trade_no'],
+            'out_trade_no'   => $callbackResult['out_trade_no'],
             'transaction_id' => $callbackResult['transaction_id'],
             'money'          => $callbackResult['amount']['total'] / 100,
             'paid_money'     => $callbackResult['amount']['payer_total'] / 100,
