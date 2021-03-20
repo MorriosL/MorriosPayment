@@ -320,15 +320,15 @@ class WechatApplication extends BaseApplication
     {
         $certificate = PemUtil::loadCertificate($this->config->certificate);
 
-        if (PemUtil::parseCertificateSerialNo($certificate) !== $_SERVER['HTTP_WECHATPAY-SERIAL']) return false;
+        if (PemUtil::parseCertificateSerialNo($certificate) !== $_SERVER['HTTP_WECHATPAY_SERIAL']) return false;
 
         $publicKey = openssl_pkey_get_public($certificate);
 
         $result = openssl_verify(implode("\n", [
-            $_SERVER['HTTP_WECHATPAY-TIMESTAMP'],
-            $_SERVER['HTTP_WECHATPAY-NONCE'],
+            $_SERVER['HTTP_WECHATPAY_TIMESTAMP'],
+            $_SERVER['HTTP_WECHATPAY_NONCE'],
             $this->getCallbackParams(),
-        ]), base64_decode($_SERVER['HTTP_WECHATPAY-SIGNATURE']), $publicKey, OPENSSL_ALGO_SHA256);
+        ]), base64_decode($_SERVER['HTTP_WECHATPAY_SIGNATURE']), $publicKey, OPENSSL_ALGO_SHA256);
 
         openssl_free_key($publicKey);
 
