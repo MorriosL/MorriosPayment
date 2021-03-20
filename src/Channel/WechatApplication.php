@@ -175,9 +175,9 @@ class WechatApplication extends BaseApplication
         return new TradeResultParam([
             'out_trade_no'   => $callbackResult['out_trade_no'],
             'transaction_id' => $callbackResult['transaction_id'],
-            'money'          => $callbackResult['amount']['total'] / 100,
-            'paid_money'     => $callbackResult['amount']['payer_total'] / 100,
-            'paid_at'        => date_create($callbackResult['success_time'])->format('Y-m-d H:i:s'),
+            'total'          => $callbackResult['amount']['total'] / 100,
+            'payer_total'    => $callbackResult['amount']['payer_total'] / 100,
+            'success_time'   => date_create($callbackResult['success_time'])->format('Y-m-d H:i:s'),
             'attach'         => $callbackResult['attach'],
         ]);
     }
