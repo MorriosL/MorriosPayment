@@ -23,5 +23,5 @@ class WechatApi
     const TRADE = '/v3/pay/transactions/';
 
     // 退款
-    const REFUND = '/v3/refund/domestic/refunds/';
+    const REFUND = '/v3/refund/domestic/refunds';
 }

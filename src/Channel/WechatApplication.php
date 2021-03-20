@@ -222,17 +222,25 @@ class WechatApplication extends BaseApplication
     public function refund(RefundParam $refundParam): RefundResultParam
     {
         try {
-            $result = $this->_guzzleClient->post(WechatApi::REFUND, [
-                'transaction_id' => $refundParam->transaction_id,
-                'out_trade_no'   => $refundParam->out_trade_no,
-                'out_refund_no'  => $refundParam->out_refund_no,
-                'notify_url'     => $refundParam->notify_url,
-                'amount'         => [
+            $params = [
+                'out_refund_no' => $refundParam->out_refund_no,
+                'notify_url'    => $refundParam->notify_url,
+                'reason'        => $refundParam->refund_desc,
+                'amount'        => [
                     'refund'   => $refundParam->refund_fee * 100,
                     'total'    => $refundParam->total_fee * 100,
                     'currency' => 'CNY',
                 ],
-            ], [], ['Accept' => 'application/json']);
+            ];
+            if ($refundParam->transaction_id) {
+                $params['transaction_id'] = $refundParam->transaction_id;
+            } elseif ($refundParam->out_trade_no) {
+                $params['out_trade_no'] = $refundParam->out_trade_no;
+            } else {
+                throw new PaymentChannelException('transaction_id或out_trade_no二选一必填');
+            }
+
+            $result = $this->_guzzleClient->post(WechatApi::REFUND, $params, [], ['Accept' => 'application/json']);
 
             return new RefundResultParam($result + $result['amount']);
         } catch (RequestException $requestException) {
@@ -272,7 +280,7 @@ class WechatApplication extends BaseApplication
     public function refundQuery(string $outTradeNo): RefundResultParam
     {
         try {
-            return new RefundResultParam($this->_guzzleClient->get(WechatApi::REFUND . $outTradeNo, [], ['Accept' => 'application/json']));
+            return new RefundResultParam($this->_guzzleClient->get(WechatApi::REFUND . '/' . $outTradeNo, [], ['Accept' => 'application/json']));
         } catch (RequestException $requestException) {
             $requestException->getRequest()->getBody()->rewind();
             $response = json_decode($requestException->getResponse()->getBody()->getContents(), true);
