@@ -336,7 +336,7 @@ class WechatApplication extends BaseApplication
             $_SERVER['HTTP_WECHATPAY_TIMESTAMP'],
             $_SERVER['HTTP_WECHATPAY_NONCE'],
             $this->getCallbackParams(),
-        ]), base64_decode($_SERVER['HTTP_WECHATPAY_SIGNATURE']), $publicKey, OPENSSL_ALGO_SHA256);
+        ]) . "\n", base64_decode($_SERVER['HTTP_WECHATPAY_SIGNATURE']), $publicKey, OPENSSL_ALGO_SHA256);
 
         openssl_free_key($publicKey);
 
